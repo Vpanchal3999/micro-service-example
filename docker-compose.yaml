@@ -1,0 +1,193 @@
+version: "3.8"
+services:
+  db:
+    image: 'postgres:latest'
+    container_name: database
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5434:5432"
+    volumes:
+      - D:\POC\Micro-service-example\postgres_datapart:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - shopping_cart_microservice_network
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=vishesh3999@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=vish@123
+    ports:
+      - "5050:80"
+    networks:
+      - shopping_cart_microservice_network
+  # netflix eureka server configure
+  eureka-service-discovery:
+    image: 'servicediscovery'
+    build: ./eureka-service-discovery/service-discovery/
+    container_name: serviceDiscovery_c
+    ports:
+        - "8761:8761"
+    environment:
+      SPRING_APPLICATION_JSON: '{"eureka":
+                                              {"client":
+                                                  {"serviceUrl":
+                                                        {"defaultZone":"http://192.168.2.199:8761/eureka"}
+                                                  }
+                                              }
+                                      }'
+    networks:
+      - shopping_cart_microservice_network
+  # Gate way client configure
+  gate-way:
+    image: 'gatewayservice'
+    build: ./gate-way/gateway/
+    container_name: gateway_c
+    ports:
+      - "8080:8080"
+    environment:
+#      - eureka.instance.preferIpAddress=true
+#      - eureka.client.service-url.defaultZone=http://http://eureka-service-discovery:8761/eureka
+      SPRING_APPLICATION_JSON: '{"eureka":
+                                          {"client":
+                                              {"serviceUrl":
+                                                    {"defaultZone":"http://192.168.2.199:8761/eureka"}
+                                              }
+                                          }
+                                  }'
+    links:
+      - eureka-service-discovery
+    depends_on:
+      - eureka-service-discovery
+    networks:
+      - shopping_cart_microservice_network
+  Common:
+    image: 'common'
+    build: ./common/
+    container_name: common_c
+    restart: always
+    networks:
+          - shopping_cart_microservice_network
+
+  # Auth service client configure
+  AuthService:
+    image: 'authservice'
+    build: ./security-example/
+    container_name: authservice_c
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_APPLICATION_JSON: '{"eureka":
+                                    {"client":
+                                        {"serviceUrl":
+                                            {"defaultZone":"http://192.168.2.199:8761/eureka"}
+                                        }
+                                    }
+                                }'
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE : "http://eureka-service-discovery:8761/eureka"
+#      EUREKA_INSTANCE_PREFER_IP_ADDRESS : "true"
+#      SPRING_DATASOURCE_URL : jdbc:postgresql://172.18.0.2:5432/authdb
+#      SPRING_DATASOURCE_USERNAME : postgres
+#      SPRING_DATASOURCE_PASSWORD : root
+#      SPRING_JPA_HIBERNATE_DDL_AUTO : update
+#                                {"spring":
+#                                    {"datasource":
+#                                        {
+#                                         "driver-class-name":"org.postgresql.Driver
+#                                         "url" : "jdbc:postgresql://172.18.0.2:5432/authdb",
+#                                         "username" : "postgres",
+#                                         "password" : "root"
+#                                        },
+#                                      "jpa":
+#                                        {"hibernate":
+#                                           {"ddl-auto" : "update"}
+#                                        }
+#                                    }
+#                                 }'
+
+#      "POSTGRES_PASSWORD=root",
+#      "POSTGRES_USER=postgres",
+#
+#      DB_HOST : db
+    links:
+      - db
+    depends_on:
+      - eureka-service-discovery
+      - db
+    restart: always
+    networks:
+      - shopping_cart_microservice_network
+
+  # Order service client configure
+  OrderService:
+    image: 'orderservice'
+    build: ./order-service/order-service/
+    container_name: orderservice_c
+    ports:
+      - "8082:8082"
+    environment:
+            SPRING_APPLICATION_JSON: '{"eureka":
+                                            {"client":
+                                              {"serviceUrl":
+                                                  {"defaultZone":"http://eureka-service-discovery:8761/eureka"}
+                                              }
+                                            }
+                                        }'
+    links:
+      - db
+    depends_on:
+      - eureka-service-discovery
+      - db
+    restart: always
+    networks:
+      - shopping_cart_microservice_network
+#  # Product service client configure
+  ProductService:
+    image: 'productservice'
+    build: ./product-service/product-service/
+    container_name: productservice_c
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_APPLICATION_JSON: '{"eureka":
+                                      {"client":
+                                        {"serviceUrl":
+                                            {"defaultZone":"http://eureka-service-discovery:8761/eureka"}
+                                        }
+                                      }
+                                  }'
+    links:
+      - db
+    depends_on:
+      - eureka-service-discovery
+      - db
+    restart: always
+    networks:
+      - shopping_cart_microservice_network
+#
+#  # Payment sevice client configure
+  PaymentService:
+    image: 'paymentservice'
+    container_name: paymentservice_c
+    ports:
+      - "8084:8084"
+    environment:
+            SPRING_APPLICATION_JSON: '{"eureka":
+                                            {"client":
+                                              {"serviceUrl":
+                                                  {"defaultZone":"http://eureka-service-discovery:8761/eureka"}
+                                              }
+                                            }
+                                        }'
+    links:
+      - db
+    depends_on:
+      - eureka-service-discovery
+      - db
+    restart: always
+    networks:
+      - shopping_cart_microservice_network
+
+networks:
+  shopping_cart_microservice_network:
