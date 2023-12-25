@@ -1,7 +1,7 @@
 package com.synoverge.common.utility;
 
 public class Constants {
-    public final static String baseUrl = "/api/v1/";
+    public final static String baseUrl = "/api/v1";
 
     public final static String[] AUTH_WHITELIST = {
             "/authenticate",
